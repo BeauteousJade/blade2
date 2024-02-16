@@ -1,4 +1,4 @@
-package com.blade.pby.injectdemo;
+package com.jade.blade2;
 
 import com.blade.annotation.Module;
 import com.blade.annotation.Provides;

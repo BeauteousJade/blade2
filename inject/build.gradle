@@ -1,18 +1,15 @@
-apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
 android {
-    compileSdkVersion 28
-
-
-
+    compileSdk 32
     defaultConfig {
-        minSdkVersion 15
-        targetSdkVersion 28
+        minSdk 21
+        targetSdk 32
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
