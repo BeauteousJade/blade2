@@ -1,10 +1,18 @@
 package com.blade.processor.writer;
 
-import com.blade.processor.util.ClassUtils;
-import com.blade.processor.util.MethodUtils;
+import static com.blade.processor.util.ClassUtils.getFetcherInterface;
+import static com.blade.processor.util.ClassUtils.getNullable;
+import static com.blade.processor.util.FieldUtils.getDeepProvideFieldParam;
+import static com.blade.processor.util.FieldUtils.getFetcher;
+import static com.blade.processor.util.FieldUtils.getFieldParam;
+import static com.blade.processor.util.StringUtils.classNameToParameterName;
+import static com.blade.processor.util.StringUtils.formatAndroidParamName;
+
 import com.blade.processor.Constant;
 import com.blade.processor.entry.ClassEntry;
 import com.blade.processor.entry.FieldEntry;
+import com.blade.processor.util.ClassUtils;
+import com.blade.processor.util.MethodUtils;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -15,6 +23,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
+import com.squareup.javapoet.WildcardTypeName;
 
 import java.io.IOException;
 import java.util.List;
@@ -22,20 +31,13 @@ import java.util.List;
 import javax.annotation.processing.Filer;
 import javax.lang.model.element.Modifier;
 
-import static com.blade.processor.util.ClassUtils.getFetcherInterface;
-import static com.blade.processor.util.ClassUtils.getNullable;
-import static com.blade.processor.util.ClassUtils.getSourceFetchers;
-import static com.blade.processor.util.FieldUtils.getDeepProvideFieldParam;
-import static com.blade.processor.util.FieldUtils.getFetcher;
-import static com.blade.processor.util.FieldUtils.getFieldParam;
-import static com.blade.processor.util.StringUtils.classNameToParameterName;
-import static com.blade.processor.util.StringUtils.formatAndroidParamName;
-
 public class FetcherWriter implements Writer {
 
     private static final String SUPER_FETCH_FIELD_NAME = "mSuperFetcher";
+    private static final String IS_INIT_FILED_NAME = "mIsInit";
     private static final String INIT_METHOD_NAME = "init";
     private static final String FETCH_METHOD_NAME = "fetch";
+    private static final String IS_INIT_METHOD_NAME = "isInit";
 
     private Filer filer;
 
@@ -49,6 +51,7 @@ public class FetcherWriter implements Writer {
             TypeSpec.Builder typeSpecBuilder = generateTypeSpecBuilder(classEntry);
             addField(typeSpecBuilder, classEntry);
             generateConstructor(typeSpecBuilder, classEntry);
+            generateIsInitMethod(typeSpecBuilder);
             generateInitMethod(typeSpecBuilder, classEntry);
             generateFetchMethod(typeSpecBuilder, classEntry);
 
@@ -115,6 +118,10 @@ public class FetcherWriter implements Writer {
                 FieldSpec.builder(getFetcher(ClassName.bestGuess(classEntry.getClassName())), SUPER_FETCH_FIELD_NAME,
                         Modifier.PRIVATE).addAnnotation(ClassUtils.getNullable());
         typeSpecBuilder.addField(superFetcherFieldSpecBuilder.build());
+
+        // 添加mIsInit
+        FieldSpec.Builder isInitFieldSpecBuilder = FieldSpec.builder(TypeName.BOOLEAN, IS_INIT_FILED_NAME, Modifier.PRIVATE);
+        typeSpecBuilder.addField(isInitFieldSpecBuilder.build());
     }
 
     /**
@@ -126,11 +133,13 @@ public class FetcherWriter implements Writer {
      */
     private void generateConstructor(TypeSpec.Builder typeSpecBuilder,
                                      ClassEntry classEntry) {
+
+        ParameterSpec superFetcherSpec = ParameterSpec.builder(getFetcher(WildcardTypeName.subtypeOf(Object.class)), "superFetcher")
+                .build();
         MethodSpec.Builder constructorMethodSpecBuilder =
-                MethodUtils.buildConstructorMethod(Modifier.PUBLIC);
-        constructorMethodSpecBuilder.addStatement("$L =  ($L<$L>)$T.fetcher($L.class.getSuperclass())",
-                SUPER_FETCH_FIELD_NAME, Constant.FETCHER_CLASS_NAME, getInnerClassName(classEntry), getSourceFetchers(),
-                getInnerClassName(classEntry));
+                MethodUtils.buildConstructorMethod(Modifier.PUBLIC, superFetcherSpec);
+        constructorMethodSpecBuilder.addStatement("$L =  ($L<$L>)$L",
+                SUPER_FETCH_FIELD_NAME, Constant.FETCHER_CLASS_NAME, getInnerClassName(classEntry), "superFetcher");
         typeSpecBuilder.addMethod(constructorMethodSpecBuilder.build());
     }
 
@@ -148,6 +157,7 @@ public class FetcherWriter implements Writer {
                         parameterName);
         MethodSpec.Builder initMethodBuilder = MethodUtils.buildOverrideMethod(INIT_METHOD_NAME,
                 Modifier.PUBLIC, void.class, parameterSpecBuilder.build());
+        initMethodBuilder.addCode("$L = true;\n", IS_INIT_FILED_NAME);
         initMethodBuilder.addCode("if ($L != null) {\n", SUPER_FETCH_FIELD_NAME);
         initMethodBuilder.addStatement("\t$L.init($L)", SUPER_FETCH_FIELD_NAME, parameterName);
         initMethodBuilder.addCode("}\n");
@@ -157,6 +167,16 @@ public class FetcherWriter implements Writer {
                     fieldEntry.getFieldName(), fieldEntry.getName());
         }
         typeSpecBuilder.addMethod(initMethodBuilder.build());
+    }
+
+    /**
+     * 生成 isInit方法。
+     */
+    private void generateIsInitMethod(TypeSpec.Builder typeSpecBuilder) {
+        MethodSpec.Builder isInitMethodBuilder = MethodUtils.buildOverrideMethod(IS_INIT_METHOD_NAME,
+                Modifier.PUBLIC, boolean.class);
+        isInitMethodBuilder.addCode("return $L;\n", IS_INIT_FILED_NAME);
+        typeSpecBuilder.addMethod(isInitMethodBuilder.build());
     }
 
     /**

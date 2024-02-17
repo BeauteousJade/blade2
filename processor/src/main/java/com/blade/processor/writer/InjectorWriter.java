@@ -83,14 +83,16 @@ public class InjectorWriter implements Writer {
                 Modifier.PUBLIC, void.class, targetBuilder.build(), objectBuilder.build()).varargs(true);
         for (FieldEntry fieldEntry : classEntry.getFieldEntryList()) {
             if (fieldEntry.isPrimitive()) {
-                methodBuilder.addStatement("$L.$L = ($L)$T.getPrimitive($T.fetch($S, $L), $L)", targetName,
+                methodBuilder.addStatement("$L.$L = ($L)$T.getPrimitive($T.fetch($S, $L), $L, $S, $S, $L)", targetName,
                         fieldEntry.getFieldName(), fieldEntry.getTypeName(), getUtils(), getFetchHolder(),
                         fieldEntry.getName(),
-                        sourcesName, getPrimitiveDefaultValue(fieldEntry.getType().getKind()));
+                        sourcesName, getPrimitiveDefaultValue(fieldEntry.getType().getKind()),
+                        fieldEntry.getFieldName(), fieldEntry.getName(), fieldEntry.isUseDefault());
             } else {
-                methodBuilder.addStatement("$L.$L = $T.checkNoNull($T.fetch($S, $L), $L)", targetName,
+                methodBuilder.addStatement("$L.$L = $T.checkNoNull($T.fetch($S, $L), $S, $S, $L)", targetName,
                         fieldEntry.getFieldName(), getUtils(), getFetchHolder(), fieldEntry.getName(),
-                        sourcesName, fieldEntry.isSupportNull());
+                        sourcesName, fieldEntry.getFieldName(), fieldEntry.getName(),
+                        fieldEntry.isUseDefault() || fieldEntry.isSupportNull());
             }
         }
         builder.addMethod(methodBuilder.build());
@@ -124,8 +126,9 @@ public class InjectorWriter implements Writer {
             case DOUBLE:
             case SHORT:
             case BYTE:
-            case CHAR:
                 return "0";
+            case CHAR:
+                return "'0'";
             default:
                 return "false";
         }

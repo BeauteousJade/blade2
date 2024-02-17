@@ -9,6 +9,7 @@ import com.blade.annotation.Inject;
 import com.blade.annotation.Module;
 import com.blade.annotation.Provides;
 import com.blade.inject.Blade;
+import com.blade.inject.injector.InjectorProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -77,27 +78,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         long time1 = System.currentTimeMillis();
-        Context context = new Context();
+        Context3 context = new Context3();
         HashMap<String, Object> map = new HashMap<>();
         Log.i("pby123", "d1 = " + (System.currentTimeMillis() - time1));
         map.put("pby3", "pby3");
         long time2 = System.currentTimeMillis();
         Target2 target = new Target2();
-        doInject(target, target.getClass(), context, map);
+        Blade.inject(target, context, map);
         Log.i("pby123", "d2 = " + (System.currentTimeMillis() - time2));
     }
 
-    private void doInject(Target target, Class<?> clazz, Context context, HashMap<String, Object> map) {
-        if (clazz == Target.class) {
-            Blade.inject(target, clazz.getName(), context, map);
-        } else {
-            doInject(target, target.getClass().getSuperclass(), context, map);
-            Blade.inject(target, clazz.getName(), context, map);
-        }
-    }
-
-    public static class Target {
-        @Inject("string")
+    public static class Target implements InjectorProvider {
+        @Inject(value = "string", useDefault = true)
         public String string;
         @Inject("strings")
         public String[] strings;
@@ -109,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         public float floatValue;
         @Inject("doubleValue")
         public double doubleValue;
-        @Inject("charValue")
+        @Inject(value = "charValue")
         public char charValue;
         @Inject("shortValue")
         public short shortValue;

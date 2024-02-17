@@ -2,7 +2,6 @@ package com.blade.inject.fetcher;
 
 import androidx.annotation.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public final class FetcherHolder {
@@ -18,9 +17,11 @@ public final class FetcherHolder {
             if (source instanceof Map && ((Map) source).containsKey(name)) {
                 return (T) ((Map) source).get(name);
             } else if (!(source instanceof Map)) {
-                Fetcher fetcher = getFetcher(source.getClass());
+                Fetcher fetcher = getFetcher(source);
                 if (fetcher != null) {
-                    fetcher.init(source);
+                    if (!fetcher.isInit()) {
+                        fetcher.init(source);
+                    }
                     T t = (T) fetcher.fetch(name);
                     if (t != null) {
                         return t;
@@ -33,7 +34,10 @@ public final class FetcherHolder {
 
     @SuppressWarnings("unchecked")
     @Nullable
-    private static <T> Fetcher<T> getFetcher(Class<T> clazz) {
-        return SourceFetchers.fetcher(clazz);
+    private static <T> Fetcher<T> getFetcher(Object item) {
+        if (item instanceof FetcherProvider) {
+            return (Fetcher<T>) ((FetcherProvider) item).getFetcher();
+        }
+        return null;
     }
 }

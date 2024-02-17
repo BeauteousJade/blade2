@@ -56,6 +56,7 @@ public class InjectProcessor extends BaseProcessor {
             fieldEntry.setType(type);
             Inject provides = element.getAnnotation(Inject.class);
             fieldEntry.setName(StringUtils.isEmpty(provides.value()) ? type.toString() : provides.value());
+            fieldEntry.setUseDefault(provides.useDefault());
             fieldEntry.setSupportNull(containsNullableAnnotation(element));
             fieldEntry.setPrimitive(type.getKind().isPrimitive());
             fieldEntry.setTypeName(ElementUtils.getSimpleType(type.toString()));

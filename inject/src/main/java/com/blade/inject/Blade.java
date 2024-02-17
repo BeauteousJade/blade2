@@ -1,28 +1,12 @@
 package com.blade.inject;
 
-import com.blade.inject.injector.Injector;
-import com.blade.inject.injector.TargetInjectors;
-
-import java.util.Map;
+import com.blade.inject.injector.InjectorProvider;
 
 public class Blade {
 
-    public static <T> void inject(T target, Map<String, Object> extraMap) {
-        inject(target, null, extraMap);
-    }
-
-    public static <T> void inject(T target, Object source) {
-        inject(target, source, null);
-    }
-
-    public static <T> void inject(T target, Object source, Map<String, Object> extraMap) {
-        inject(target, target.getClass().getName(), source, extraMap);
-    }
-
-    public static <T> void inject(T target, String className, Object source, Map<String, Object> extraMap) {
-        Injector<T> injector = TargetInjectors.injector(className);
-        if (injector != null) {
-            injector.inject(target, source, extraMap);
+    public static <T> void inject(T target, Object... source) {
+        if (target instanceof InjectorProvider) {
+            ((InjectorProvider) target).doInject(source);
         }
     }
 }

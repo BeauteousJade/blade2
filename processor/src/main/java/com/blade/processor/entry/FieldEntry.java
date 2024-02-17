@@ -9,6 +9,7 @@ public class FieldEntry {
     private String typePackage;
     private String name;
     private boolean supportNull;
+    private boolean useDefault;
     private boolean isPrimitive;
     private boolean deepProvide;
 
@@ -42,6 +43,14 @@ public class FieldEntry {
 
     public void setSupportNull(boolean supportNull) {
         this.supportNull = supportNull;
+    }
+
+    public boolean isUseDefault() {
+        return useDefault;
+    }
+
+    public void setUseDefault(boolean useDefault) {
+        this.useDefault = useDefault;
     }
 
     public boolean isPrimitive() {
